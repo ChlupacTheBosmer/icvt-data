@@ -16,16 +16,16 @@
 # annotation_data_array = filtered_data
 
 # ICVT modules
-from modules.utility import utils
+from ..utility import utils
 
 # Extra modules
 import pandas as pd
 import openpyxl
 import xlwings as xw
-from typing import Dict, Callable
 
 # Python defaults
 import os
+from typing import Dict, Callable
 
 class Ancestor_annotation_file():
 
