@@ -1,0 +1,1 @@
+SELECT frame_path FROM Frames WHERE roi_number = ?;

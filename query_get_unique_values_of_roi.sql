@@ -1,0 +1,1 @@
+SELECT DISTINCT roi_number FROM Frames;
