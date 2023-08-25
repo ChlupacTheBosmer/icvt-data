@@ -25,7 +25,7 @@ class frameDatabase:
             x2 INTEGER,
             y2 INTEGER,
             frame_path TEXT,
-            low_fps_video_frame_number INTEGER
+            low_fps_video_frame_number INTEGER,
             detection BOOLEAN,
             number_of_visitors INTEGER,
             bounding_boxes TEXT,
@@ -116,7 +116,10 @@ class frameDatabase:
         conn.close()
 
     def update_detection_info(self, object_detection_metadata, roi_number):
+        print(object_detection_metadata)
+        print(roi_number)
         for frame_number, detection_info in object_detection_metadata.items():
+            print(frame_number)
             low_fps_frame_number = frame_number  # Assuming the dictionary key is same as low_fps_video_frame_number
 
             # Extract the values from the dictionary
@@ -128,14 +131,13 @@ class frameDatabase:
             serialized_classes = json.dumps(classes)
 
             # Update the database columns with both low_fps_video_frame_number and roi_number conditions
-            condition_columns = ('low_fps_video_frame_number', 'roi_number')
-            condition_values = (low_fps_frame_number, roi_number)
+            condition_args = ('low_fps_video_frame_number', low_fps_frame_number, 'roi_number', roi_number)
 
-            self.update_column_value('Frames', 'detection', detection, *condition_columns, *condition_values)
-            self.update_column_value('Frames', 'number_of_visitors', num_visitors, *condition_columns, *condition_values)
-            self.update_column_value('Frames', 'bounding_boxes', serialized_boxes, *condition_columns, *condition_values)
-            self.update_column_value('Frames', 'detection_confs', serialized_confs, *condition_columns, *condition_values)
-            self.update_column_value('Frames', 'visitor_classes', serialized_classes, *condition_columns, *condition_values)
+            self.update_column_value('Frames', 'detection', detection, *condition_args)
+            self.update_column_value('Frames', 'number_of_visitors', num_visitors, *condition_args)
+            self.update_column_value('Frames', 'bounding_boxes', serialized_boxes, *condition_args)
+            self.update_column_value('Frames', 'detection_confs', serialized_confs, *condition_args)
+            self.update_column_value('Frames', 'visitor_classes', serialized_classes, *condition_args)
 
 # Example usage
 if __name__ == "__main__":
