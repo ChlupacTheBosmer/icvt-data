@@ -1,4 +1,5 @@
 import sqlite3
+import json
 
 class frameDatabase:
     def __init__(self, database_path):
@@ -25,6 +26,11 @@ class frameDatabase:
             y2 INTEGER,
             frame_path TEXT,
             low_fps_video_frame_number INTEGER
+            detection BOOLEAN,
+            number_of_visitors INTEGER,
+            bounding_boxes TEXT,
+            detection_confs TEXT,
+            visitor_classes TEXT
         )
         ''')
 
@@ -33,7 +39,23 @@ class frameDatabase:
         conn.close()
 
     def add_database_entry(self, video_id, timestamp, roi_number, frame_number,
-                           visit_number, x1, y1, x2, y2, frame_path, low_fps_video_frame_number: int = -1):
+                           visit_number, x1, y1, x2, y2, frame_path, low_fps_video_frame_number: int = -1,
+                           detection: bool = False, number_of_visitors: int = -1, bounding_boxes=None,
+                           detection_confs=None, visitor_classes=None):
+
+        # Process default parameters
+        if bounding_boxes is None:
+            bounding_boxes = []
+        if detection_confs is None:
+            detection_confs = []
+        if visitor_classes is None:
+            visitor_classes = []
+
+        # Serialize lists
+        bounding_boxes = json.dumps(bounding_boxes)
+        detection_confs = json.dumps(detection_confs)
+        visitor_classes = json.dumps(visitor_classes)
+
         # Connect to the database
         conn = sqlite3.connect(self.database_path)
         cursor = conn.cursor()
@@ -41,11 +63,13 @@ class frameDatabase:
         # Insert a new frame entry
         insert_query = '''
         INSERT INTO Frames (video_id, timestamp, roi_number, frame_number,
-                            visit_number, x1, y1, x2, y2, frame_path, low_fps_video_frame_number)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            visit_number, x1, y1, x2, y2, frame_path, low_fps_video_frame_number, detection, 
+                            number_of_visitors, bounding_boxes, detection_confs, visitor_classes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         '''
         data = (video_id, timestamp, roi_number, frame_number, visit_number,
-                x1, y1, x2, y2, frame_path, low_fps_video_frame_number)
+                x1, y1, x2, y2, frame_path, low_fps_video_frame_number, detection,
+                number_of_visitors, bounding_boxes, detection_confs, visitor_classes)
         cursor.execute(insert_query, data)
 
         # Commit changes and close the connection
@@ -70,22 +94,48 @@ class frameDatabase:
         conn.close()
         return result
 
-    def update_column_value(self, table_name, column_name, new_value, condition_column, condition_value):
+    def update_column_value(self, table_name, column_name, new_value, *args):
         conn = sqlite3.connect(self.database_path)
         cursor = conn.cursor()
+
+        condition_columns = args[::2]
+        condition_values = args[1::2]
+        condition_format = " AND ".join([f"{col} = ?" for col in condition_columns])
 
         update_query = f'''
         UPDATE {table_name}
         SET {column_name} = ?
-        WHERE {condition_column} = ?;
+        WHERE {condition_format};
         '''
 
-        data = (new_value, condition_value)
+        data = (new_value,) + tuple(condition_values)
 
         cursor.execute(update_query, data)
 
         conn.commit()
         conn.close()
+
+    def update_detection_info(self, object_detection_metadata, roi_number):
+        for frame_number, detection_info in object_detection_metadata.items():
+            low_fps_frame_number = frame_number  # Assuming the dictionary key is same as low_fps_video_frame_number
+
+            # Extract the values from the dictionary
+            detection, num_visitors, boxes, confs, classes = detection_info
+
+            # Serialize the lists as JSON strings
+            serialized_boxes = json.dumps(boxes)
+            serialized_confs = json.dumps(confs)
+            serialized_classes = json.dumps(classes)
+
+            # Update the database columns with both low_fps_video_frame_number and roi_number conditions
+            condition_columns = ('low_fps_video_frame_number', 'roi_number')
+            condition_values = (low_fps_frame_number, roi_number)
+
+            self.update_column_value('Frames', 'detection', detection, *condition_columns, *condition_values)
+            self.update_column_value('Frames', 'number_of_visitors', num_visitors, *condition_columns, *condition_values)
+            self.update_column_value('Frames', 'bounding_boxes', serialized_boxes, *condition_columns, *condition_values)
+            self.update_column_value('Frames', 'detection_confs', serialized_confs, *condition_columns, *condition_values)
+            self.update_column_value('Frames', 'visitor_classes', serialized_classes, *condition_columns, *condition_values)
 
 # Example usage
 if __name__ == "__main__":
