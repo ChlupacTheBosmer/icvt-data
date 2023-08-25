@@ -72,9 +72,12 @@ class frameDatabase:
                 number_of_visitors, bounding_boxes, detection_confs, visitor_classes)
         cursor.execute(insert_query, data)
 
+        last_inserted_id = cursor.lastrowid
+
         # Commit changes and close the connection
         conn.commit()
         conn.close()
+        return last_inserted_id
 
     def execute_sql_script(self, script_path, params=None):
 
@@ -115,12 +118,7 @@ class frameDatabase:
         conn.commit()
         conn.close()
 
-    def update_detection_info(self, object_detection_metadata, roi_number):
-        print(object_detection_metadata)
-        print(roi_number)
-        for frame_number, detection_info in object_detection_metadata.items():
-            print(frame_number)
-            low_fps_frame_number = frame_number  # Assuming the dictionary key is same as low_fps_video_frame_number
+    def update_detection_info(self, id, detection_info):
 
             # Extract the values from the dictionary
             detection, num_visitors, boxes, confs, classes = detection_info
@@ -131,13 +129,34 @@ class frameDatabase:
             serialized_classes = json.dumps(classes)
 
             # Update the database columns with both low_fps_video_frame_number and roi_number conditions
-            condition_args = ('low_fps_video_frame_number', low_fps_frame_number, 'roi_number', roi_number)
+            condition_args = ('id', id)
 
             self.update_column_value('Frames', 'detection', detection, *condition_args)
             self.update_column_value('Frames', 'number_of_visitors', num_visitors, *condition_args)
             self.update_column_value('Frames', 'bounding_boxes', serialized_boxes, *condition_args)
             self.update_column_value('Frames', 'detection_confs', serialized_confs, *condition_args)
             self.update_column_value('Frames', 'visitor_classes', serialized_classes, *condition_args)
+
+    # def update_detection_info(self, object_detection_metadata, roi_number):
+    #     for frame_number, detection_info in object_detection_metadata.items():
+    #         low_fps_frame_number = frame_number  # Assuming the dictionary key is same as low_fps_video_frame_number
+    #
+    #         # Extract the values from the dictionary
+    #         detection, num_visitors, boxes, confs, classes = detection_info
+    #
+    #         # Serialize the lists as JSON strings
+    #         serialized_boxes = json.dumps(boxes)
+    #         serialized_confs = json.dumps(confs)
+    #         serialized_classes = json.dumps(classes)
+    #
+    #         # Update the database columns with both low_fps_video_frame_number and roi_number conditions
+    #         condition_args = ('low_fps_video_frame_number', low_fps_frame_number, 'roi_number', roi_number)
+    #
+    #         self.update_column_value('Frames', 'detection', detection, *condition_args)
+    #         self.update_column_value('Frames', 'number_of_visitors', num_visitors, *condition_args)
+    #         self.update_column_value('Frames', 'bounding_boxes', serialized_boxes, *condition_args)
+    #         self.update_column_value('Frames', 'detection_confs', serialized_confs, *condition_args)
+    #         self.update_column_value('Frames', 'visitor_classes', serialized_classes, *condition_args)
 
 # Example usage
 if __name__ == "__main__":
