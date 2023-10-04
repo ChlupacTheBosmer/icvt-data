@@ -129,7 +129,7 @@ class Ancestor_annotation_file():
         temp_excel_dir = os.path.join(self.root_folder, 'resources', 'exc')
 
         # Save temp file
-        utils.create_dir(temp_excel_dir)
+        os.makedirs(temp_excel_dir, exist_ok=True)
         dataframe.to_excel(os.path.join(temp_excel_dir, "output_filtered_crop.xlsx"), index=False)
 
     def load_excel_file(self, cols, converters):
@@ -149,7 +149,7 @@ class Ancestor_annotation_file():
                 sheet.api.AutoFilterMode = False
 
             # Save to temporary file
-            utils.create_dir(os.path.join(self.root_folder, "resources", "exc"))
+            os.makedirs(os.path.join(self.root_folder, "resources", "exc"), exist_ok=True)
             temp_filepath = os.path.join(self.root_folder, "resources", "exc", "temp.xlsx")
             workbook.save(temp_filepath)
             workbook.close()
